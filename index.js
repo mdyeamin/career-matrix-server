@@ -5,6 +5,7 @@ var cors = require("cors");
 const app = express();
 const port = 8000;
 app.use(cors());
+app.use(express.json());
 const uri = process.env.MONGODB_URI;
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -31,9 +32,11 @@ async function run() {
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
 
-    app.post("/jobs", async (req, res) => {
+    app.post("/api/jobs", async (req, res) => {
       const jobs = req.body;
       const result = await jobCollection.insertOne(jobs);
+      console.log("After post from backend",result);
+      
       res.send(result);
     });
   } finally {
