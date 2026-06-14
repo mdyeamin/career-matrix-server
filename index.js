@@ -1,6 +1,6 @@
 const express = require("express");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 var cors = require("cors");
 const app = express();
 const port = 8000;
@@ -30,9 +30,9 @@ async function run() {
 
     // get all user
     app.get("/api/users", async (req, res) => {
-      const cursor = userCollection.find().skip(6)
-      const result = await cursor.toArray()
-      res.send(result)
+      const cursor = userCollection.find().skip(6);
+      const result = await cursor.toArray();
+      res.send(result);
     });
 
     // get jobs api
@@ -52,6 +52,16 @@ async function run() {
       res.send(result);
     });
 
+    // get job api by id
+    app.get("/api/jobs/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await jobCollection.findOne(query);
+      res.send(result);
+    });
+
     // post jobs api
     app.post("/api/jobs", async (req, res) => {
       const jobs = req.body;
@@ -68,11 +78,11 @@ async function run() {
     // companies related api
 
     //get all companies
-    app.get('/api/companies',async(req,res)=>{
-      const cursor =  companyCollection.find().skip(2)
-      const result = await cursor.toArray()
-      res.send(result)
-    })
+    app.get("/api/companies", async (req, res) => {
+      const cursor = companyCollection.find().skip(2);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
     // get company
     app.get("/api/my/companies", async (req, res) => {
       const query = {};
