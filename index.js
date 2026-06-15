@@ -27,6 +27,7 @@ async function run() {
     const jobCollection = database.collection("jobs");
     const companyCollection = database.collection("companies");
     const userCollection = database.collection("user");
+    const applicationCollections = database.collection("applications");
 
     // get all user
     app.get("/api/users", async (req, res) => {
@@ -105,6 +106,18 @@ async function run() {
       console.log("after post company backend", result);
 
       res.send(result);
+    });
+
+    // applications related apis
+    //post applications
+    app.post("/api/applications", async (req, res) => {
+      const application = req.body;
+      const newApplication = {
+        ...application,
+        createdAt: new Date(),
+      }
+      const result = await applicationCollections.insertOne(newApplication)
+      res.send(result)
     });
 
     // Send a ping to confirm a successful connection
