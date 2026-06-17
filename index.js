@@ -28,7 +28,8 @@ async function run() {
     const companyCollection = database.collection("companies");
     const userCollection = database.collection("user");
     const applicationCollections = database.collection("applications");
-
+    const plansCollection = database.collection("plans");
+    const subscriptionCollection = database.collection("subscriptions");
     // get all user
     app.get("/api/users", async (req, res) => {
       const cursor = userCollection.find().skip(6);
@@ -80,7 +81,7 @@ async function run() {
 
     //get all companies
     app.get("/api/companies", async (req, res) => {
-      const cursor = companyCollection.find().skip(2);
+      const cursor = companyCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -109,15 +110,63 @@ async function run() {
     });
 
     // applications related apis
+
+    // get applications
+    app.get("/api/applications", async (req, res) => {
+      console.log("after req", req.query.applicantId);
+      const query = {};
+      if (req.query.applicantId) {
+        query.applicantId = req.query.applicantId;
+      }
+      if (req.query.jobId) {
+        query.jobId = req.query.jobId;
+      }
+      const result = await applicationCollections.find(query).toArray();
+
+      res.send(result);
+    });
     //post applications
     app.post("/api/applications", async (req, res) => {
       const application = req.body;
       const newApplication = {
         ...application,
         createdAt: new Date(),
+      };
+      const result = await applicationCollections.insertOne(newApplication);
+      res.send(result);
+    });
+
+    //plans
+    app.get("/api/plans", async (req, res) => {
+      const query = {};
+      if (req.query.plan_id) {
+        query.id = req.query.plan_id;
       }
-      const result = await applicationCollections.insertOne(newApplication)
-      res.send(result)
+      const plan = await plansCollection.findOne(query);
+      res.send(plan);
+    });
+
+    //subscriptions
+    app.post("/api/subscriptions", async (req, res) => {
+      const data = req.body;
+      const subsInfo = {
+        ...data,
+        createdAt: new Date(),
+      };
+      const result = await subscriptionCollection.insertOne(subsInfo);
+
+      const filter = { email: data.email };
+      // update the value of the 'quantity' field to 5
+      const updateDocument = {
+        $set: {
+          plan: data.planId,
+        },
+      };
+      const updateResult = await userCollection.updateOne(
+        filter,
+        updateDocument,
+      );
+      res.send(updateResult);
     });
 
     // Send a ping to confirm a successful connection
