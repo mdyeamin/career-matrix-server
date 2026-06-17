@@ -85,7 +85,7 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
-    // get company
+    // get my company
     app.get("/api/my/companies", async (req, res) => {
       const query = {};
       if (req.query.recruiterId) {
@@ -106,6 +106,19 @@ async function run() {
       const result = await companyCollection.insertOne(newCompany);
       console.log("after post company backend", result);
 
+      res.send(result);
+    });
+
+    app.patch("/api/companies/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedCompany = req.body;
+      const updatedDoc = {
+        $set: {
+          status: updatedCompany.status,
+        },
+      };
+      const result = await companyCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
 
