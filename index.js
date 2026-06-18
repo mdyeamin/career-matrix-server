@@ -10,6 +10,10 @@ const uri = process.env.MONGODB_URI;
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
+const logger = async (req, res, next) => {
+  console.log("cud ling pong", req.params);
+  next();
+};
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -30,6 +34,37 @@ async function run() {
     const applicationCollections = database.collection("applications");
     const plansCollection = database.collection("plans");
     const subscriptionCollection = database.collection("subscriptions");
+    const sessionCollection = database.collection("session");
+    //verification
+    const verifyToken = async (req, res, next) => {
+      // console.log("headers", req.headers.);
+      const authHeader = req?.headers?.authorization;
+      if (!authHeader) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+      const token = authHeader.split(" ")[1];
+      if (!token) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+      const query = { token: token };
+      const session = await sessionCollection.findOne(query);
+      const userId = session?.userId;
+      const userQuery = {
+        _id: userId,
+      };
+      const user = await userCollection.findOne(userQuery);
+      req.user = user;
+      // console.log(userId);
+      console.log(user);
+      next();
+    };
+
+    const verifySeeker = async (req, res, next) => {
+      if (req.user?.role !== "seeker") {
+        res.status(401).send({ message: "unauthorized access" });
+      }
+    };
+
     // get all user
     app.get("/api/users", async (req, res) => {
       const cursor = userCollection.find().skip(6);
@@ -80,8 +115,32 @@ async function run() {
     // companies related api
 
     //get all companies
-    app.get("/api/companies", async (req, res) => {
+    // app.get("/api/companies", async (req, res) => {
+    //   const cursor = companyCollection.find();
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
+    // inefficient to join/aggregate collection
+    app.get("/api/companies", verifyToken, async (req, res) => {
       const cursor = companyCollection.find();
+      const companies = await cursor.toArray();
+      for (const company of companies) {
+        const filter = {
+          companyId: company._id.toString(),
+        };
+        const jobCount = await jobCollection.countDocuments(filter);
+        company.jobCount = jobCount;
+      }
+      res.send(companies);
+    });
+    // inefficient to join/aggregate collection
+    app.get("/api/companies2", async (req, res) => {
+      const pipeline = [
+        {
+          $skip: 4,
+        },
+      ];
+      const cursor = companyCollection.aggregate(pipeline);
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -109,7 +168,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/api/companies/:id", async (req, res) => {
+    app.patch("/api/companies/:id", logger, verifyToken, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updatedCompany = req.body;
@@ -125,7 +184,7 @@ async function run() {
     // applications related apis
 
     // get applications
-    app.get("/api/applications", async (req, res) => {
+    app.get("/api/applications", verifyToken, async (req, res) => {
       console.log("after req", req.query.applicantId);
       const query = {};
       if (req.query.applicantId) {
